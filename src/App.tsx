@@ -19,8 +19,10 @@ import { Product, CartItem } from './lib/types';
 import WelcomeModal from './components/WelcomeModal';
 
 const App: React.FC = () => {
-  // Simple routing based on URL path
-  const currentPath = window.location.pathname;
+// Simple routing based on URL path
+    const rawPath = window.location.pathname;
+  // normalize: accept /shop and /shop/
+    const currentPath = rawPath.endsWith('/') && rawPath !== '/' ? rawPath.slice(0, -1) : rawPath;
   
   // Show launch page for root path
   if (currentPath === '/' || currentPath === '/launch') {
