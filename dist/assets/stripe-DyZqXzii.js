@@ -1,0 +1,3 @@
+const s=async t=>{try{console.log("Creating checkout session for items:",t),await new Promise(o=>setTimeout(o,1e3));const e=t.reduce((o,r)=>{const c=r.price||34.99;return o+c*r.quantity},0);return console.log("Checkout total:",e),alert(`Checkout initiated for ${t.length} items. Total: €${e.toFixed(2)}
+
+In production, this would redirect to Stripe checkout.`),{success:!0,total:e,message:"Checkout session created successfully"}}catch(e){throw console.error("Error creating checkout session:",e),new Error("Failed to create checkout session. Please try again.")}};export{s as createCheckoutSession};
