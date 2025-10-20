@@ -1,0 +1,1 @@
+git push origin maingit add src/components/Hero.tsx
