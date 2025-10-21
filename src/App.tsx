@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header, { FilterOptions } from './components/Header';
 import Hero from './components/Hero';
 import Collection from './components/Collection';
@@ -16,19 +15,31 @@ import TermsOfService from './components/InfoPages/TermsOfService';
 import ReturnPolicy from './components/InfoPages/ReturnPolicy';
 import LaunchPage from './components/LaunchPage/LaunchPage';
 import LearnMorePage from './components/LaunchPage/LearnMorePage';
-import SuccessPage from './components/SuccessPage';
 import { Product, CartItem } from './lib/types';
 import WelcomeModal from './components/WelcomeModal';
-import { AuthProvider } from './contexts/AuthContext';
-import Login from './pages/admin/Login';
-import Dashboard from './pages/admin/Dashboard';
-import Products from './pages/admin/Products';
-import Orders from './pages/admin/Orders';
-import Settings from './pages/admin/Settings';
-import AdminLayout from './components/Admin/AdminLayout';
-import ProtectedRoute from './components/Admin/ProtectedRoute';
 
-function ShopApp() {
+const App: React.FC = () => {
+  // Simple routing based on URL path
+  const rawPath = window.location.pathname;
+  // normalize: accept /shop and /shop/
+  const currentPath = rawPath.endsWith('/') && rawPath !== '/' ? rawPath.slice(0, -1) : rawPath;
+
+  // Show launch page for root path
+  if (currentPath === '/' || currentPath === '/launch') {
+    return <LaunchPage />;
+  }
+
+  // Show learn more page
+  if (currentPath === '/learn-more') {
+    return <LearnMorePage />;
+  }
+
+  // Original E.O.A Line website for /shop path
+  if (currentPath !== '/shop') {
+    // Redirect to launch page if not on shop
+    window.location.href = '/';
+    return null;
+  }
 
   const [filters, setFilters] = useState<FilterOptions>({
     gender: "all",
@@ -41,7 +52,7 @@ function ShopApp() {
   const [wishlistItems, setWishlistItems] = useState<Product[]>([]);
   const [showCart, setShowCart] = useState(false);
   const [showWishlist, setShowWishlist] = useState(false);
-  
+
   // Info page modals
   const [showSizeGuide, setShowSizeGuide] = useState(false);
   const [showShippingInfo, setShowShippingInfo] = useState(false);
@@ -142,28 +153,17 @@ function ShopApp() {
   };
 
   // Cart functions
-  const handleAddToCart = (product: Product, selectedSize?: string, selectedColor?: string) => {
+  const handleAddToCart = (product: Product) => {
     setCartItems(prev => {
-      const existingItem = prev.find(item => 
-        item.product.id === product.id && 
-        item.selectedSize === selectedSize && 
-        item.selectedColor === selectedColor
-      );
+      const existingItem = prev.find(item => item.product.id === product.id);
       if (existingItem) {
         return prev.map(item =>
-          item.product.id === product.id && 
-          item.selectedSize === selectedSize && 
-          item.selectedColor === selectedColor
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
+            item.product.id === product.id
+                ? { ...item, quantity: item.quantity + 1 }
+                : item
         );
       }
-      return [...prev, { 
-        product, 
-        quantity: 1, 
-        selectedSize: selectedSize || '', 
-        selectedColor: selectedColor || '' 
-      }];
+      return [...prev, { product, quantity: 1 }];
     });
   };
 
@@ -173,11 +173,11 @@ function ShopApp() {
       return;
     }
     setCartItems(prev =>
-      prev.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity }
-          : item
-      )
+        prev.map(item =>
+            item.product.id === productId
+                ? { ...item, quantity }
+                : item
+        )
     );
   };
 
@@ -212,128 +212,96 @@ function ShopApp() {
   const wishlistItemsCount = wishlistItems.length;
 
   return (
-    <div className="min-h-screen bg-white">
-      <Header 
-        onFilter={handleFilter}
-        cartItemsCount={cartItemsCount}
-        wishlistItemsCount={wishlistItemsCount}
-        onSearch={handleSearch}
-        onShowCart={() => setShowCart(true)}
-        onShowWishlist={() => setShowWishlist(true)}
-        onNavigateToSection={handleNavigateToSection}
-        filters={filters}
-      />
-      
-      <div ref={heroRef}>
-        <Hero />
-      </div>
-      
-      <div ref={collectionsRef}>
-        <Collection 
-          filters={filters}
-          onAddToCart={handleAddToCart}
-          onAddToWishlist={handleAddToWishlist}
-          wishlistItems={wishlistItems}
+      <div className="min-h-screen bg-white">
+        <Header
+            onFilter={handleFilter}
+            cartItemsCount={cartItemsCount}
+            wishlistItemsCount={wishlistItemsCount}
+            onSearch={handleSearch}
+            onShowCart={() => setShowCart(true)}
+            onShowWishlist={() => setShowWishlist(true)}
+            onNavigateToSection={handleNavigateToSection}
+            filters={filters}
         />
+
+        <div ref={heroRef}>
+          <Hero />
+        </div>
+
+        <div ref={collectionsRef}>
+          <Collection
+              filters={filters}
+              onAddToCart={handleAddToCart}
+              onAddToWishlist={handleAddToWishlist}
+              wishlistItems={wishlistItems}
+          />
+        </div>
+
+        <div ref={brandRef}>
+          <BrandStory />
+        </div>
+
+        <Footer onNavigateToSection={handleNavigateToSection} />
+
+        {/* Cart Modal */}
+        <CartModal
+            isOpen={showCart}
+            onClose={() => setShowCart(false)}
+            items={cartItems}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveFromCart}
+            onClearCart={handleClearCart}
+        />
+
+        {/* Wishlist Modal */}
+        <WishlistModal
+            isOpen={showWishlist}
+            onClose={() => setShowWishlist(false)}
+            items={wishlistItems}
+            onRemoveItem={handleRemoveFromWishlist}
+            onAddToCart={handleAddToCart}
+            onClearWishlist={handleClearWishlist}
+        />
+
+        {/* Info Page Modals */}
+        <SizeGuide
+            isOpen={showSizeGuide}
+            onClose={() => setShowSizeGuide(false)}
+        />
+
+        <ShippingInfo
+            isOpen={showShippingInfo}
+            onClose={() => setShowShippingInfo(false)}
+        />
+
+        <ReturnsProcess
+            isOpen={showReturnsProcess}
+            onClose={() => setShowReturnsProcess(false)}
+        />
+
+        <ContactUs
+            isOpen={showContactUs}
+            onClose={() => setShowContactUs(false)}
+        />
+
+        <PrivacyPolicy
+            isOpen={showPrivacyPolicy}
+            onClose={() => setShowPrivacyPolicy(false)}
+        />
+
+        <TermsOfService
+            isOpen={showTermsOfService}
+            onClose={() => setShowTermsOfService(false)}
+        />
+
+        <ReturnPolicy
+            isOpen={showReturnPolicy}
+            onClose={() => setShowReturnPolicy(false)}
+        />
+
+        {/* Welcome Modal */}
+        <WelcomeModal />
       </div>
-      
-      <div ref={brandRef}>
-        <BrandStory />
-      </div>
-      
-      <Footer onNavigateToSection={handleNavigateToSection} />
-
-      {/* Cart Modal */}
-      <CartModal
-        isOpen={showCart}
-        onClose={() => setShowCart(false)}
-        items={cartItems}
-        onUpdateQuantity={handleUpdateCartQuantity}
-        onRemoveItem={handleRemoveFromCart}
-        onClearCart={handleClearCart}
-      />
-
-      {/* Wishlist Modal */}
-      <WishlistModal
-        isOpen={showWishlist}
-        onClose={() => setShowWishlist(false)}
-        items={wishlistItems}
-        onRemoveItem={handleRemoveFromWishlist}
-        onAddToCart={handleAddToCart}
-        onClearWishlist={handleClearWishlist}
-      />
-
-      {/* Info Page Modals */}
-      <SizeGuide 
-        isOpen={showSizeGuide} 
-        onClose={() => setShowSizeGuide(false)} 
-      />
-      
-      <ShippingInfo 
-        isOpen={showShippingInfo} 
-        onClose={() => setShowShippingInfo(false)} 
-      />
-      
-      <ReturnsProcess 
-        isOpen={showReturnsProcess} 
-        onClose={() => setShowReturnsProcess(false)} 
-      />
-      
-      <ContactUs 
-        isOpen={showContactUs} 
-        onClose={() => setShowContactUs(false)} 
-      />
-      
-      <PrivacyPolicy 
-        isOpen={showPrivacyPolicy} 
-        onClose={() => setShowPrivacyPolicy(false)} 
-      />
-      
-      <TermsOfService 
-        isOpen={showTermsOfService} 
-        onClose={() => setShowTermsOfService(false)} 
-      />
-      
-      <ReturnPolicy 
-        isOpen={showReturnPolicy} 
-        onClose={() => setShowReturnPolicy(false)} 
-      />
-      
-      {/* Welcome Modal */}
-      <WelcomeModal />
-    </div>
-  );
-}
-
-const App: React.FC = () => {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/" element={<LaunchPage />} />
-          <Route path="/launch" element={<LaunchPage />} />
-          <Route path="/learn-more" element={<LearnMorePage />} />
-          <Route path="/success" element={<SuccessPage />} />
-          <Route path="/shop" element={<ShopApp />} />
-
-          <Route path="/admin/login" element={<Login />} />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="products" element={<Products />} />
-            <Route path="orders" element={<Orders />} />
-            <Route path="settings" element={<Settings />} />
-          </Route>
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
   );
 };
 
