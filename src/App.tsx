@@ -306,11 +306,6 @@ function ShopApp() {
 }
 
 const App: React.FC = () => {
-  // Simple routing based on URL path
-  const rawPath = window.location.pathname;
-  // normalize: accept /shop and /shop/
-  const currentPath = rawPath.endsWith('/') && rawPath !== '/' ? rawPath.slice(0, -1) : rawPath;
-
   return (
     <BrowserRouter>
       <AuthProvider>
